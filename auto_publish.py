@@ -112,7 +112,7 @@ def publish_to_wp(title, content, image_url, image_credit):
         "title": title,
         "content": f"{image_tag}<div>{content}</div>",
         "status": "publish",
-        "categories": [2],
+        "categories": [387],
         "excerpt": content[:100] + "…",
         "featured_media": media_id
     }
