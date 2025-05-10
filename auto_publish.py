@@ -28,7 +28,7 @@ def generate_article(news_list):
         "并结合我们产品的优势：\n" + "\n".join(news_list)
     )
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "你是一名资深市场分析师。"},
             {"role": "user", "content": prompt}
