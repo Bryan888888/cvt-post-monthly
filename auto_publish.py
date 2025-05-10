@@ -2,6 +2,9 @@ import os, requests, json, random, re
 from datetime import datetime
 from openai import OpenAI
 from urllib.parse import urljoin
+import openai
+
+client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])  # 替换成你设置的 Secret 名
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
