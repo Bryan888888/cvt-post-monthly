@@ -4,7 +4,7 @@ from openai import OpenAI
 from urllib.parse import urljoin
 import openai
 
-client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])  # 替换成你设置的 Secret 名
+client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
@@ -13,6 +13,10 @@ PIXABAY_API_KEY  = os.environ["PIXABAY_API_KEY"]
 WP_BASE_URL      = os.environ["WORDPRESS_BASE_URL"]
 WP_USER          = os.environ["WORDPRESS_USERNAME"]
 WP_APP_PASS      = os.environ["WORDPRESS_APPLICATION_PASSWORD"]
+
+# 默认图片 URL 和 media_id
+DEFAULT_IMAGE_URL = "https://example.com/default-image.jpg"  # 替换为你想要的默认图片 URL
+DEFAULT_MEDIA_ID = 12345  # 替换为你网站的默认媒体 ID
 
 # 1. 抓取最新行业新闻
 def fetch_top_news():
@@ -35,23 +39,23 @@ def generate_article(news):
             temperature=0.7
         )
         return response.choices[0].message.content
-    except openai.RateLimitError as e:
+    except openai.RateLimitError:
         print("⚠️ OpenAI API 配额不足，使用占位内容代替文章生成。")
         return "【占位内容】由于当前 OpenAI API 配额已耗尽，本文内容暂无法自动生成。"
     except Exception as e:
         print(f"❌ OpenAI API 调用失败：{e}")
         return "【占位内容】生成过程中发生错误，暂无法生成文章。"
 
-# 3. 从新闻中提取关键词（用于 Pixabay 图像搜索）
+# 3. 提取关键词
 def extract_keywords(news_list, max_keywords=3):
     text = " ".join(news_list)
-    words = re.findall(r'\b\w{5,}\b', text)  # 提取长度大于5的单词
+    words = re.findall(r'\b\w{5,}\b', text)
     common_words = {"technology", "market", "latest", "update", "industry", "report", "global"}
     keywords = [w.lower() for w in words if w.lower() not in common_words]
     unique_keywords = list(set(keywords))
     return unique_keywords[:max_keywords] or ["technology"]
 
-# 4. 获取无版权图片（Pixabay 搜索 + 随机选择）
+# 4. 从 Pixabay 获取图片
 def fetch_image(news_list):
     keywords = extract_keywords(news_list)
     for keyword in keywords:
@@ -71,46 +75,32 @@ def fetch_image(news_list):
         if hits:
             image = random.choice(hits)
             return image["largeImageURL"], image["user"]
-    raise Exception("❌ Pixabay 无法找到与新闻匹配的图片")
+    print("⚠️ Pixabay 无法找到相关图片，使用默认图片。")
+    return DEFAULT_IMAGE_URL, "Pixabay"
 
 # 5. 发布到 WordPress
 def publish_to_wp(title, content, image_url, image_credit):
+    media_id = DEFAULT_MEDIA_ID  # 使用默认的媒体 ID
+    image_tag = f'<img src="{image_url}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>' if image_url else ""
+
+    # 发布文章
+    post = {
+        "title": title,
+        "content": f"{image_tag}<div>{content}</div>",
+        "status": "publish",
+        "categories": [2],  # 修改为你的实际分类 ID
+        "excerpt": content[:100] + "…",
+        "featured_media": media_id  # 使用默认的 media_id
+    }
+
     try:
-        # 5.1 上传媒体
-        media_response = requests.post(
-            urljoin(WP_BASE_URL, "/wp-json/wp/v2/media"),
-            auth=(WP_USER, WP_APP_PASS),
-            headers={"Content-Disposition": 'attachment; filename="cover.jpg"'},
-            data=requests.get(image_url).content
-        )
-        media_response.raise_for_status()  # 如果上传失败，将抛出异常
-        media = media_response.json()
-
-        # 获取 media_id
-        media_id = media.get("id")
-        if not media_id:
-            print("❌ 上传图片失败，未获取到媒体 ID。")
-            media_id = DEFAULT_MEDIA_ID  # 使用默认图片 ID
-
-        # 5.2 发布文章
-        image_tag = f'<img src="{media["source_url"]}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>' if media_id else ""
-        
-        post = {
-            "title": title,
-            "content": f"{image_tag}<div>{content}</div>",
-            "status": "publish",
-            "categories": [2],  # 修改为你的实际分类 ID
-            "excerpt": content[:100] + "…",
-            "featured_media": media_id  # 使用 media_id
-        }
-
         r = requests.post(
             urljoin(WP_BASE_URL, "/wp-json/wp/v2/posts"),
             auth=(WP_USER, WP_APP_PASS),
             headers={"Content-Type": "application/json"},
             json=post
         )
-        r.raise_for_status()  # 如果发布失败，将抛出异常
+        r.raise_for_status()
         print("🎉 发布成功，文章 ID:", r.json().get("id"))
     except Exception as e:
         print(f"❌ 发布文章失败：{e}")
