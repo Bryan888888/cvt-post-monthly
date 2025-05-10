@@ -80,17 +80,41 @@ def fetch_image(news_list):
 
 # 5. 发布到 WordPress
 def publish_to_wp(title, content, image_url, image_credit):
-    media_id = DEFAULT_MEDIA_ID  # 使用默认的媒体 ID
-    image_tag = f'<img src="{image_url}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>' if image_url else ""
+    media_id = DEFAULT_MEDIA_ID
+    uploaded_image_url = image_url
+
+    # 下载图片并上传到 WordPress 媒体库
+    try:
+        image_data = requests.get(image_url).content
+        filename = "cover.jpg"
+
+        media_response = requests.post(
+            urljoin(WP_BASE_URL, "/wp-json/wp/v2/media"),
+            auth=(WP_USER, WP_APP_PASS),
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Type": "image/jpeg"
+            },
+            data=image_data
+        )
+        media_response.raise_for_status()
+        media_json = media_response.json()
+        media_id = media_json.get("id", DEFAULT_MEDIA_ID)
+        uploaded_image_url = media_json.get("source_url", image_url)
+    except Exception as e:
+        print(f"⚠️ 图片上传失败，使用默认图片: {e}")
+
+    # 插入图片 HTML
+    image_tag = f'<img src="{uploaded_image_url}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>'
 
     # 发布文章
     post = {
         "title": title,
         "content": f"{image_tag}<div>{content}</div>",
         "status": "publish",
-        "categories": [2],  # 修改为你的实际分类 ID
+        "categories": [2],
         "excerpt": content[:100] + "…",
-        "featured_media": media_id  # 使用默认的 media_id
+        "featured_media": media_id
     }
 
     try:
