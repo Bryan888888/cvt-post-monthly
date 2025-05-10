@@ -25,7 +25,7 @@ jobs:
         env:
           NEWS_API_KEY:        ${{ secrets.NEWS_API_KEY }}
           OPENAI_API_KEY:      ${{ secrets.OPENAI_API_KEY }}
-          PIXABAY_ACCESS_KEY: ${{ secrets.PIXABAY_ACCESS_KEY }}
+          PIXABAY_API_KEY:     ${{ secrets.PIXABAY_API_KEY }}
           WORDPRESS_BASE_URL:  ${{ secrets.WORDPRESS_BASE_URL }}
           WORDPRESS_USERNAME:  ${{ secrets.WORDPRESS_USERNAME }}
           WORDPRESS_APPLICATION_PASSWORD: ${{ secrets.WORDPRESS_APPLICATION_PASSWORD }}
