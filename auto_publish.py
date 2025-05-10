@@ -21,21 +21,23 @@ def fetch_top_news():
     return [f"{a['title']}: {a['description']}" for a in data.get("articles", [])]
 
 # 2. 用 GPT 生成文章
-def generate_article(news_list):
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    prompt = (
-        "根据以下行业新闻要点，写一篇 500 字左右的原创技术市场洞察文章，"
-        "并结合我们产品的优势：\n" + "\n".join(news_list)
-    )
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "你是一名资深市场分析师。"},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7
-    )
-    return response.choices[0].message.content
+def generate_article(news):
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "你是一位资深中文科技新闻撰稿人。"},
+                {"role": "user", "content": f"请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except openai.RateLimitError as e:
+        print("⚠️ OpenAI API 配额不足，使用占位内容代替文章生成。")
+        return "【占位内容】由于当前 OpenAI API 配额已耗尽，本文内容暂无法自动生成。"
+    except Exception as e:
+        print(f"❌ OpenAI API 调用失败：{e}")
+        return "【占位内容】生成过程中发生错误，暂无法生成文章。"
 
 # 3. 从新闻中提取关键词（用于 Pixabay 图像搜索）
 def extract_keywords(news_list, max_keywords=3):
