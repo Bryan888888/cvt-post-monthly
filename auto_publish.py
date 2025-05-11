@@ -115,10 +115,13 @@ def generate_article_and_keywords(news: str) -> dict:
 
 # 3. 清理生成的文章并去除段落标题
 def clean_article(article: str):
-    # 删除段落标题，如 Introduction, Key News Points, Conclusion
-    article = re.sub(r"\*\*?([A-Za-z ]+):\*\*", "", article)
-    article = re.sub(r"\n{2,}", "\n\n", article)  # 去除多余的空行
-    article = article.strip()  # 去除前后的空格和换行
+    # 删除段落标题，如 Introduction, Summary, Conclusion
+    article = re.sub(r"^(Introduction|Summary|Conclusion|Key News Points):\s*", "", article, flags=re.IGNORECASE)
+    # 去除多余的空行
+    article = re.sub(r"\n{2,}", "\n\n", article)  
+    # 去除前后的空格和换行
+    article = article.strip()  
+    
     return article
 
 # 4. 使用 Pixabay 搜索相关图片
