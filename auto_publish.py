@@ -20,37 +20,37 @@ import time
 
 def fetch_top_news():
     keywords = ["sewing", "stitching", "fashion", "aramid"]
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0"}
+    api_keys = [os.getenv("NEWS_API_KEY"), os.getenv("NEWS_API_KEY_2")]  # 多个 Key
 
     for keyword in keywords:
-        print(f"🔍 正在尝试关键词：{keyword}")
-        try:
-            resp = requests.get(
-                "https://newsapi.org/v2/everything",
-                params={
-                    "apiKey": os.environ["NEWS_API_KEY"],
-                    "q": keyword,
-                    "language": "en",
-                    "pageSize": 3,
-                    "sortBy": "publishedAt"
-                },
-                headers=headers
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            articles = data.get("articles", [])
-            if articles:
-                return [f"{a['title']}: {a.get('description', '')}" for a in articles]
-            else:
-                print(f"⚠️ 关键词“{keyword}”未获取到有效新闻。")
-        except Exception as e:
-            print(f"❌ 获取关键词“{keyword}”的新闻失败：{e}")
-        time.sleep(1)  # 加入1秒延迟，避免触发API限流
-
-    print("⚠️ 所有关键词均获取失败，返回空列表。")
+        for api_key in api_keys:
+            print(f"🔍 正在尝试关键词：{keyword} with API key ending in ...{api_key[-4:]}")
+            try:
+                resp = requests.get(
+                    "https://newsapi.org/v2/everything",
+                    params={
+                        "apiKey": api_key,
+                        "q": keyword,
+                        "language": "en",
+                        "pageSize": 3,
+                        "sortBy": "publishedAt"
+                    },
+                    headers=headers
+                )
+                if resp.status_code == 429:
+                    print("⚠️ 被限流，更换 API Key 或等待重试。")
+                    time.sleep(10)
+                    continue  # 换下一个 key
+                resp.raise_for_status()
+                articles = resp.json().get("articles", [])
+                if articles:
+                    return [f"{a['title']}: {a.get('description', '')}" for a in articles]
+            except Exception as e:
+                print(f"❌ 获取关键词“{keyword}”的新闻失败：{e}")
+            time.sleep(5)  # 增加时间间隔
     return []
+
 
 
 # 2. 用通义平台生成文章（使用 requests）
