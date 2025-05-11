@@ -1,14 +1,11 @@
 import os, requests, json, random, re
 from datetime import datetime
-from openai import OpenAI
 from urllib.parse import urljoin
-import openai
-
-client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
-OPENAI_API_KEY   = os.environ["OPENAI_API_KEY"]
+ALI_ACCESS_KEY   = os.environ["ALI_ACCESS_KEY"]
+ALI_SECRET_KEY   = os.environ["ALI_SECRET_KEY"]
 PIXABAY_API_KEY  = os.environ["PIXABAY_API_KEY"]
 WP_BASE_URL      = os.environ["WORDPRESS_BASE_URL"]
 WP_USER          = os.environ["WORDPRESS_USERNAME"]
@@ -27,23 +24,30 @@ def fetch_top_news():
     data = resp.json()
     return [f"{a['title']}: {a['description']}" for a in data.get("articles", [])]
 
-# 2. 用 GPT 生成文章
+# 2. 用通义平台生成文章
 def generate_article(news):
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "你是一位资深中文科技新闻撰稿人。"},
-                {"role": "user", "content": f"请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"}
-            ],
-            temperature=0.7
+        response = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
+            headers={
+                "Authorization": f"Bearer {ALI_ACCESS_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "qwen-turbo",
+                "input": {
+                    "prompt": f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"
+                },
+                "parameters": {
+                    "temperature": 0.7
+                }
+            }
         )
-        return response.choices[0].message.content
-    except openai.RateLimitError:
-        print("⚠️ OpenAI API 配额不足，使用占位内容代替文章生成。")
-        return "【占位内容】由于当前 OpenAI API 配额已耗尽，本文内容暂无法自动生成。"
+        response.raise_for_status()
+        result = response.json()
+        return result["output"]["text"]
     except Exception as e:
-        print(f"❌ OpenAI API 调用失败：{e}")
+        print(f"❌ 通义 API 调用失败：{e}")
         return "【占位内容】生成过程中发生错误，暂无法生成文章。"
 
 # 3. 提取关键词
