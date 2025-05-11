@@ -1,9 +1,6 @@
-import os, dashscope, requests, json, random, re
+import os, requests, json, random, re
 from datetime import datetime
 from urllib.parse import urljoin
-
-# 使用 GitHub Secrets 中配置的 AccessKey ID 和 AccessKey Secret
-dashscope.api_key = os.environ['ALI_ACCESS_KEY']  # 这里会使用 AccessKey ID 和 AccessKey Secret
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
@@ -26,20 +23,33 @@ def fetch_top_news():
     data = resp.json()
     return [f"{a['title']}: {a['description']}" for a in data.get("articles", [])]
 
-# 2. 用通义平台生成文章
+# 2. 用通义平台生成文章（使用 requests）
 def generate_article(news):
     try:
-        # 调用通义千问 API 进行文本生成
-        response = dashscope.Generation.call(
-            model='qwen-turbo',
-            prompt=f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}",
-            top_p=0.8,         # 控制随机性（0.0 - 1.0之间，值越低，生成内容越确定）
-            temperature=0.7    # 控制输出的温度，影响创意性
+        response = requests.post(
+            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
+            headers={
+                "Authorization": f"Bearer {ALI_ACCESS_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "qwen-turbo",
+                "input": {
+                    "prompt": f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"
+                },
+                "parameters": {
+                    "temperature": 0.7
+                }
+            }
         )
-
-        # 获取返回的文章内容
-        return response['output']['text']
-
+        response.raise_for_status()
+        result = response.json()
+        text = result.get("output", {}).get("text")
+        if text:
+            return text
+        else:
+            print(f"⚠️ 未找到生成的文本内容，响应内容：{json.dumps(result, ensure_ascii=False)}")
+            return "【占位内容】生成过程中发生错误，暂无法生成文章。"
     except Exception as e:
         print(f"❌ 通义 API 调用失败：{e}")
         return "【占位内容】生成过程中发生错误，暂无法生成文章。"
@@ -81,7 +91,6 @@ def publish_to_wp(title, content, image_url, image_credit):
     media_id = DEFAULT_MEDIA_ID
     uploaded_image_url = image_url
 
-    # 下载图片并上传到 WordPress 媒体库
     try:
         image_data = requests.get(image_url).content
         filename = "cover.jpg"
@@ -102,10 +111,8 @@ def publish_to_wp(title, content, image_url, image_credit):
     except Exception as e:
         print(f"⚠️ 图片上传失败，使用默认图片: {e}")
 
-    # 插入图片 HTML
     image_tag = f'<img src="{uploaded_image_url}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>'
 
-    # 发布文章
     post = {
         "title": title,
         "content": f"{image_tag}<div>{content}</div>",
