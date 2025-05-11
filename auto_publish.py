@@ -17,31 +17,28 @@ DEFAULT_MEDIA_ID = 12345  # 替换为你网站的默认媒体 ID
 
 # 1. 使用 Currents API 抓取最新行业新闻
 def fetch_top_news():
-    keywords = ["sewing", "stitching", "fashion", "aramid"]
-    for keyword in keywords:
-        try:
-            print(f"🔍 正在尝试关键词：{keyword}")
-            resp = requests.get(
-                "https://api.currentsapi.services/v1/search",
-                params={
-                    "apiKey": os.environ["CURR_API_KEY"],
-                    "query": keyword,
-                    "language": "en",
-                    "page_size": 3,
-                    "sort_by": "published"
-                },
-                timeout=10
-            )
-            resp.raise_for_status()
-            articles = resp.json().get("news", [])
-            if articles:
-                return [f"{a['title']}: {a.get('description', '')}" for a in articles]
-        except Exception as e:
-            print(f"⚠️ 获取关键词“{keyword}”的新闻失败：{e}")
-            time.sleep(2)
-    print("⚠️ 所有关键词均获取失败，返回空列表。")
-    return []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/90.0.4430.93 Safari/537.36"
+    }
 
+    try:
+        resp = requests.get(
+            "https://api.currentsapi.services/v1/search",
+            params={
+                "apiKey": os.environ["CURR_API_KEY"],
+                "query": "textiles OR apparel OR garment",
+                "language": "en",
+                "page_size": 3,
+                "sort_by": "published"
+            },
+            headers=headers
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return [f"{n['title']}: {n.get('description', '')}" for n in data.get("news", [])]
+    except Exception as e:
+        print(f"❌ 获取新闻失败：{e}")
+        return []
 
 # 2. 用通义平台生成文章（使用 requests）
 def generate_article(news: str) -> str:
