@@ -1,11 +1,13 @@
-import os, requests, json, random, re
+import os, dashscope, requests, json, random, re
 from datetime import datetime
 from urllib.parse import urljoin
+
+# 使用 GitHub Secrets 中配置的 AccessKey ID 和 AccessKey Secret
+dashscope.api_key = os.environ['ALI_ACCESS_KEY']  # 这里会使用 AccessKey ID 和 AccessKey Secret
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
 ALI_ACCESS_KEY   = os.environ["ALI_ACCESS_KEY"]
-ALI_SECRET_KEY   = os.environ["ALI_SECRET_KEY"]
 PIXABAY_API_KEY  = os.environ["PIXABAY_API_KEY"]
 WP_BASE_URL      = os.environ["WORDPRESS_BASE_URL"]
 WP_USER          = os.environ["WORDPRESS_USERNAME"]
@@ -27,29 +29,17 @@ def fetch_top_news():
 # 2. 用通义平台生成文章
 def generate_article(news):
     try:
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-            headers={
-                "Authorization": f"Bearer {ALI_ACCESS_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "qwen-turbo",
-                "input": {
-                    "prompt": f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"
-                },
-                "parameters": {
-                    "temperature": 0.7
-                }
-            }
+        # 调用通义千问 API 进行文本生成
+        response = dashscope.Generation.call(
+            model='qwen-turbo',
+            prompt=f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}",
+            top_p=0.8,         # 控制随机性（0.0 - 1.0之间，值越低，生成内容越确定）
+            temperature=0.7    # 控制输出的温度，影响创意性
         )
-        response.raise_for_status()
-        result = response.json()
-        if "output" in result and "text" in result["output"]:
-            return result["output"]["text"]
-        else:
-            print(f"⚠️ 未找到生成的文本内容，响应内容：{result}")
-            return "【占位内容】生成过程中发生错误，暂无法生成文章。"
+
+        # 获取返回的文章内容
+        return response['output']['text']
+
     except Exception as e:
         print(f"❌ 通义 API 调用失败：{e}")
         return "【占位内容】生成过程中发生错误，暂无法生成文章。"
