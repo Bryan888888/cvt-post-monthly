@@ -50,14 +50,14 @@ def fetch_top_news():
             time.sleep(5)
     return []
 
-# 2. 使用通义平台生成英文文章
-def generate_article(news: str) -> str:
+# 2. 使用通义平台生成英文文章和关键词
+def generate_article(news: str) -> dict:
     url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
-    prompt = f"""Please write an English article based on the following news snippets:\n\n{news}\n\nRequirements:\n1. Concise and well-structured.\n2. Summarize the key news points.\n3. Add a brief intro and conclusion."""
+    prompt = f"""Please write an English article based on the following news snippets:\n\n{news}\n\nRequirements:\n1. Concise and well-structured.\n2. Summarize the key news points.\n3. Add a brief intro and conclusion.\n4. Provide a list of keywords from the article, return them in the format: keyword1, keyword2, keyword3, ..."""
 
     payload = {
         "model": "qwen-turbo",
@@ -65,7 +65,7 @@ def generate_article(news: str) -> str:
             "prompt": prompt
         },
         "parameters": {
-            "result_format": "text"
+            "result_format": "json"
         }
     }
 
@@ -73,25 +73,17 @@ def generate_article(news: str) -> str:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        return data.get("output", {}).get("text", "No valid content returned.")
+        article_text = data.get("output", {}).get("text", "No valid content returned.")
+        
+        # Extract keywords (comma-separated)
+        keywords = data.get("output", {}).get("keywords", "").split(", ")
+        return article_text, keywords
     except Exception as e:
         print(f"❌ Tongyi API failed: {e}")
-        return "Error: Missing or invalid news content."
+        return "Error: Missing or invalid news content.", []
 
-# 3. 提取英文关键词
-def extract_keywords(news_list, max_keywords=3):
-    text = " ".join(news_list)
-    words = re.findall(r'\b\w{5,}\b', text)
-    common_words = {"technology", "market", "latest", "update", "industry", "report", "global"}
-    keywords = [w.lower() for w in words if w.lower() not in common_words]
-    unique_keywords = list(set(keywords))
-    selected = unique_keywords[:max_keywords] or ["technology"]
-    print(f"🧠 Keywords for image search: {selected}")
-    return selected
-
-# 4. 使用 Pixabay 搜索相关图片
-def fetch_image(news_list):
-    keywords = extract_keywords(news_list)
+# 3. 使用 Pixabay 搜索相关图片
+def fetch_image(keywords):
     for keyword in keywords:
         try:
             resp = requests.get(
@@ -115,7 +107,7 @@ def fetch_image(news_list):
     print("⚠️ No images found, using default.")
     return DEFAULT_IMAGE_URL, "Pixabay"
 
-# 5. 发布文章到 WordPress
+# 4. 发布文章到 WordPress
 def publish_to_wp(title, content, image_url, image_credit):
     media_id = DEFAULT_MEDIA_ID
     uploaded_image_url = image_url
@@ -172,8 +164,8 @@ def main():
 
     news_text = "\n".join(news_list)
 
-    article = generate_article(news_text)
-    image_url, credit = fetch_image(news_list)
+    article, keywords = generate_article(news_text)
+    image_url, credit = fetch_image(keywords)
 
     title = f"Daily Industry Insight - {datetime.now().strftime('%Y-%m-%d')}"
     publish_to_wp(title, article, image_url, credit)
