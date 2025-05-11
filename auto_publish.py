@@ -122,17 +122,19 @@ def publish_to_wp(title, content, image_url, image_credit):
         "featured_media": media_id
     }
 
-    try:
-        r = requests.post(
-            urljoin(WP_BASE_URL, "/wp-json/wp/v2/posts"),
-            auth=(WP_USER, WP_APP_PASS),
-            headers={"Content-Type": "application/json"},
-            json=post
-        )
-        r.raise_for_status()
-        print("🎉 发布成功，文章 ID:", r.json().get("id"))
-    except Exception as e:
-        print(f"❌ 发布文章失败：{e}")
+   try:
+    r = requests.post(
+        urljoin(WP_BASE_URL, "/wp-json/wp/v2/posts"),
+        auth=(WP_USER, WP_APP_PASS),
+        headers={"Content-Type": "application/json"},
+        json=post
+    )
+    r.raise_for_status()
+    print("✅ WordPress 响应内容：", json.dumps(r.json(), ensure_ascii=False, indent=2))
+    print("🎉 发布成功，文章 ID:", r.json().get("id"))
+except Exception as e:
+    print(f"❌ 发布文章失败：{e}")
+
 
 # 主流程
 def main():
