@@ -45,7 +45,11 @@ def generate_article(news):
         )
         response.raise_for_status()
         result = response.json()
-        return result["output"]["text"]
+        if "output" in result and "text" in result["output"]:
+            return result["output"]["text"]
+        else:
+            print(f"⚠️ 未找到生成的文本内容，响应内容：{result}")
+            return "【占位内容】生成过程中发生错误，暂无法生成文章。"
     except Exception as e:
         print(f"❌ 通义 API 调用失败：{e}")
         return "【占位内容】生成过程中发生错误，暂无法生成文章。"
