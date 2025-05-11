@@ -57,7 +57,17 @@ def generate_article_and_keywords(news: str) -> dict:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
-    prompt = f"""Please write an English article based on the following news snippets:\n\n{news}\n\nRequirements:\n1. Concise and well-structured.\n2. Summarize the key news points.\n3. Add a brief intro and conclusion.\n4. Provide a list of keywords from the article, return them in the format: keyword1, keyword2, keyword3, ...\n\nAlso, generate a relevant title for the article."""
+   prompt = f"""
+Based on the following news snippets, write a concise and well-structured article. The article should include the following:
+1. A clear and engaging title.
+2. A summary of the key news points.
+3. A brief introduction and conclusion.
+
+Also, provide a list of keywords related to the article, separated by commas. Return the title and keywords in the following format:
+Title: <generated_title>
+Keywords: <keyword1>, <keyword2>, <keyword3>, ...
+\n\nNews snippets:\n{news}
+"""
 
     payload = {
         "model": "qwen-turbo",
@@ -73,6 +83,8 @@ def generate_article_and_keywords(news: str) -> dict:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
+        print(f"🔍 API response data: {json.dumps(data, ensure_ascii=False, indent=2)}")  # Add this line for debugging
+
         article_text = data.get("output", {}).get("text", "No valid content returned.")
         
         # Extract title and keywords from API response
@@ -85,6 +97,7 @@ def generate_article_and_keywords(news: str) -> dict:
     except Exception as e:
         print(f"❌ Tongyi API failed: {e}")
         return "Error: Missing or invalid news content.", "", []
+
 
 # 3. 清理生成的文章并去除段落标题
 def clean_article(article: str):
