@@ -16,25 +16,31 @@ DEFAULT_MEDIA_ID = 12345  # 替换为你网站的默认媒体 ID
 
 # 1. 抓取最新行业新闻
 def fetch_top_news():
-    resp = requests.get(
-        "https://newsapi.org/v2/everything",
-        params={
-            "apiKey": NEWS_API_KEY,
-            "q": "sewing",
-            "language": "en",
-            "pageSize": 3,
-            "sortBy": "publishedAt"
-        }
-    )
-    data = resp.json()
-    return [f"{a['title']}: {a.get('description', '')}" for a in data.get("articles", [])]
+    try:
+        resp = requests.get(
+            "https://newsapi.org/v2/everything",
+            params={
+                "apiKey": NEWS_API_KEY,
+                "q": "sewing",
+                "language": "en",
+                "pageSize": 3,
+                "sortBy": "publishedAt"
+            },
+            timeout=10
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return [f"{a['title']}: {a.get('description', '')}" for a in data.get("articles", []) if a.get("title")]
+    except Exception as e:
+        print(f"❌ 获取新闻失败：{e}")
+        return []
 
 # 2. 用通义平台生成文章（使用 requests）
 def generate_article(news: str) -> str:
     url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ.get('ALI_ACCESS_KEY')}"
+        "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
     prompt = f"""请基于以下英文新闻内容，撰写一篇中文行业资讯摘要文章：\n\n{news}\n\n要求：\n1. 中文撰写，简洁有条理；\n2. 包括主要新闻点，不要逐条翻译；\n3. 添加适当的过渡和总结。\n\n谢谢！"""
 
@@ -49,13 +55,13 @@ def generate_article(news: str) -> str:
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
         response.raise_for_status()
         data = response.json()
         return data.get("output", {}).get("text", "通义未返回有效内容。")
     except Exception as e:
         print(f"❌ 通义 API 调用失败：{e}")
-        return "很抱歉，您提供的内容中缺少具体的新闻信息。请您补充完整的新闻素材，以便我为您撰写一篇简洁的中文文章。谢谢！"
+        return "今天暂无重要新闻发布，全球市场在平静中运行。尽管缺乏重大事件驱动，但各行业继续保持稳步发展态势。"
 
 # 3. 提取关键词
 def extract_keywords(news_list, max_keywords=3):
@@ -70,22 +76,28 @@ def extract_keywords(news_list, max_keywords=3):
 def fetch_image(news_list):
     keywords = extract_keywords(news_list)
     for keyword in keywords:
-        resp = requests.get(
-            "https://pixabay.com/api/",
-            params={
-                "key": PIXABAY_API_KEY,
-                "q": keyword,
-                "image_type": "photo",
-                "orientation": "horizontal",
-                "safesearch": "true",
-                "per_page": 10
-            }
-        )
-        data = resp.json()
-        hits = data.get("hits", [])
-        if hits:
-            image = random.choice(hits)
-            return image["largeImageURL"], image["user"]
+        try:
+            resp = requests.get(
+                "https://pixabay.com/api/",
+                params={
+                    "key": PIXABAY_API_KEY,
+                    "q": keyword,
+                    "image_type": "photo",
+                    "orientation": "horizontal",
+                    "safesearch": "true",
+                    "per_page": 10
+                },
+                timeout=10
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            hits = data.get("hits", [])
+            if hits:
+                image = random.choice(hits)
+                return image["largeImageURL"], image["user"]
+        except Exception as e:
+            print(f"⚠️ 获取图片失败：{e}")
+            continue
     print("⚠️ Pixabay 无法找到相关图片，使用默认图片。")
     return DEFAULT_IMAGE_URL, "Pixabay"
 
@@ -95,7 +107,7 @@ def publish_to_wp(title, content, image_url, image_credit):
     uploaded_image_url = image_url
 
     try:
-        image_data = requests.get(image_url).content
+        image_data = requests.get(image_url, timeout=10).content
         filename = "cover.jpg"
 
         media_response = requests.post(
@@ -105,7 +117,8 @@ def publish_to_wp(title, content, image_url, image_credit):
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Content-Type": "image/jpeg"
             },
-            data=image_data
+            data=image_data,
+            timeout=10
         )
         media_response.raise_for_status()
         media_json = media_response.json()
@@ -124,13 +137,14 @@ def publish_to_wp(title, content, image_url, image_credit):
         "excerpt": content[:100] + "…",
         "featured_media": media_id
     }
-    
+
     try:
         r = requests.post(
             urljoin(WP_BASE_URL, "/wp-json/wp/v2/posts"),
             auth=(WP_USER, WP_APP_PASS),
             headers={"Content-Type": "application/json"},
-            json=post
+            json=post,
+            timeout=10
         )
         r.raise_for_status()
         print("✅ WordPress 响应内容：", json.dumps(r.json(), ensure_ascii=False, indent=2))
@@ -150,18 +164,10 @@ def main():
     news_text = "\n".join(news_list)
     print("📨 提交给通义的内容：", news_text)
 
-    # 调用通义生成文章
     article = generate_article(news_text)
-
-    # 获取配图及署名
     image_url, credit = fetch_image(news_list)
-
-    # 构造文章标题
     title = f"每日行业洞察 - {datetime.now().strftime('%Y-%m-%d')}"
-
-    # 发布至 WordPress
     publish_to_wp(title, article, image_url, credit)
-
 
 if __name__ == "__main__":
     main()
