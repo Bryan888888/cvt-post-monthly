@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]  # 留作备用
+NEWS_API_KEY_2   = os.environ["NEWS_API_KEY_2"]  # 留作备用
 CURR_API_KEY     = os.environ["CURR_API_KEY"]  # Currents API Key
 ALI_ACCESS_KEY   = os.environ["ALI_ACCESS_KEY"]
 PIXABAY_API_KEY  = os.environ["PIXABAY_API_KEY"]
@@ -21,7 +22,7 @@ import time
 def fetch_top_news():
     keywords = ["sewing", "stitching", "fashion", "aramid"]
     headers = {"User-Agent": "Mozilla/5.0"}
-    api_keys = [os.getenv("NEWS_API_KEY"), os.getenv("NEWS_API_KEY_2")]  # 多个 Key
+    api_keys = [k for k in [os.getenv("NEWS_API_KEY"), os.getenv("NEWS_API_KEY_2")] if k] # 多个 Key
 
     for keyword in keywords:
         for api_key in api_keys:
