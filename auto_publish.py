@@ -50,14 +50,14 @@ def fetch_top_news():
             time.sleep(5)
     return []
 
-# 2. 使用通义平台生成英文文章和关键词
-def generate_article(news: str) -> dict:
+# 2. 使用通义平台生成英文文章和标题
+def generate_article_and_title(news: str) -> dict:
     url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
-    prompt = f"""Please write an English article based on the following news snippets:\n\n{news}\n\nRequirements:\n1. Concise and well-structured.\n2. Summarize the key news points.\n3. Add a brief intro and conclusion.\n4. Provide a list of keywords from the article, return them in the format: keyword1, keyword2, keyword3, ..."""
+    prompt = f"""Please write an English article based on the following news snippets:\n\n{news}\n\nRequirements:\n1. Concise and well-structured.\n2. Summarize the key news points.\n3. Add a brief intro and conclusion.\n4. Provide a list of keywords from the article, return them in the format: keyword1, keyword2, keyword3, ...\n\nAlso, generate a relevant title for the article."""
 
     payload = {
         "model": "qwen-turbo",
@@ -75,17 +75,27 @@ def generate_article(news: str) -> dict:
         data = response.json()
         article_text = data.get("output", {}).get("text", "No valid content returned.")
         
-        # Extract keywords (comma-separated)
+        # Extract title and keywords
+        title = data.get("output", {}).get("title", "Untitled")
         keywords = data.get("output", {}).get("keywords", "").split(", ")
-        return article_text, keywords
+        return title, article_text, keywords
     except Exception as e:
         print(f"❌ Tongyi API failed: {e}")
-        return "Error: Missing or invalid news content.", []
+        return "Error: Missing or invalid news content.", "", []
 
-# 3. 使用 Pixabay 搜索相关图片
+# 3. 清理生成的文章并去除段落标题
+def clean_article(article: str):
+    # 删除段落标题，如 Introduction, Key News Points, Conclusion
+    article = re.sub(r"\*\*?([A-Za-z ]+):\*\*", "", article)
+    article = re.sub(r"\n{2,}", "\n\n", article)  # 去除多余的空行
+    article = article.strip()  # 去除前后的空格和换行
+    return article
+
+# 4. 使用 Pixabay 搜索相关图片
 def fetch_image(keywords):
     for keyword in keywords:
         try:
+            print(f"🔑 Keywords for image search: {keywords}")  # 打印关键词清单
             resp = requests.get(
                 "https://pixabay.com/api/",
                 params={
@@ -107,7 +117,7 @@ def fetch_image(keywords):
     print("⚠️ No images found, using default.")
     return DEFAULT_IMAGE_URL, "Pixabay"
 
-# 4. 发布文章到 WordPress
+# 5. 发布文章到 WordPress
 def publish_to_wp(title, content, image_url, image_credit):
     media_id = DEFAULT_MEDIA_ID
     uploaded_image_url = image_url
@@ -164,10 +174,13 @@ def main():
 
     news_text = "\n".join(news_list)
 
-    article, keywords = generate_article(news_text)
+    title, article, keywords = generate_article_and_title(news_text)
+    article = clean_article(article)  # 清理文章，去除标题注释
+
     image_url, credit = fetch_image(keywords)
 
-    title = f"Daily Industry Insight - {datetime.now().strftime('%Y-%m-%d')}"
+    # 使用通义生成的标题
+    title = f"{title} - {datetime.now().strftime('%Y-%m-%d')}"
     publish_to_wp(title, article, image_url, credit)
 
 if __name__ == "__main__":
