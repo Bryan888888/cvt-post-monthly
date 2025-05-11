@@ -3,7 +3,7 @@ name: Auto Publish to WordPress
 on:
   schedule:
     - cron: '0 2 15 * *'    # 每月15日 UTC 2点（北京时间10点）运行
-  workflow_dispatch:      # 允许手动触发
+  workflow_dispatch:        # 允许手动触发
 
 jobs:
   publish:
@@ -19,12 +19,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install requests openai python-dateutil
+          pip install requests python-dateutil
 
       - name: Run auto-publish
         env:
           NEWS_API_KEY:        ${{ secrets.NEWS_API_KEY }}
-          OPENAI_API_KEY:      ${{ secrets.OPENAI_API_KEY }}
+          ALI_ACCESS_KEY:      ${{ secrets.ALI_ACCESS_KEY }}
+          ALI_SECRET_KEY:      ${{ secrets.ALI_SECRET_KEY }}
           PIXABAY_API_KEY:     ${{ secrets.PIXABAY_API_KEY }}
           WORDPRESS_BASE_URL:  ${{ secrets.WORDPRESS_BASE_URL }}
           WORDPRESS_USERNAME:  ${{ secrets.WORDPRESS_USERNAME }}
