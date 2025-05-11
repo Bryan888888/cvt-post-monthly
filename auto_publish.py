@@ -142,7 +142,7 @@ def publish_to_wp(title, content, image_url, image_credit):
 
     post = {
         "title": title,
-        "content": f"{image_tag}<div>{content}</div>",
+        "content": f"<div>{content}</div>",
         "status": "publish",
         "categories": [387],  # 你的 WordPress 分类 ID
         "excerpt": content[:100] + "…",
