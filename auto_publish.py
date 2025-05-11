@@ -17,11 +17,17 @@ DEFAULT_MEDIA_ID = 12345  # 替换为你网站的默认媒体 ID
 # 1. 抓取最新行业新闻
 def fetch_top_news():
     resp = requests.get(
-        "https://newsapi.org/v2/top-headlines",
-        params={"apiKey": NEWS_API_KEY, "category": "technology", "pageSize": 3}
+        "https://newsapi.org/v2/everything",
+        params={
+            "apiKey": NEWS_API_KEY,
+            "q": "sewing",
+            "language": "en",
+            "pageSize": 3,
+            "sortBy": "publishedAt"
+        }
     )
     data = resp.json()
-    return [f"{a['title']}: {a['description']}" for a in data.get("articles", [])]
+    return [f"{a['title']}: {a.get('description', '')}" for a in data.get("articles", [])]
 
 # 2. 用通义平台生成文章（使用 requests）
 def generate_article(news: str) -> str:
