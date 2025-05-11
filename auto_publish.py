@@ -92,18 +92,25 @@ def generate_article_and_keywords(news: str) -> dict:
         # 确保正确访问数据中的 output 字段
         output = data.get("output", {})
         
-        # 检查返回的数据结构
-        title = output.get("title", "Untitled")
-        keywords = output.get("keywords", "").split(", ")  # 按逗号分割关键字
+        # 从 output 中提取文本
+        text = output.get("text", "")
+        
+        # 提取标题（通常是第一行）
+        title = text.split("\n")[0].replace("Title: ", "").strip()
+        
+        # 提取关键词（通常在 'Keywords: ' 后）
+        keywords_line = next((line for line in text.split("\n") if line.startswith("Keywords:")), "")
+        keywords = keywords_line.replace("Keywords: ", "").strip().split(", ")
 
         print(f"Generated Title: {title}")  # Debug print
         print(f"Keywords for image search: {keywords}")  # Debug print
         
-        return title, output.get("text", "No valid content returned."), keywords
+        return title, text, keywords
 
     except Exception as e:
         print(f"❌ Tongyi API failed: {e}")
         return "Error: Missing or invalid news content.", "", []
+
 
 
 # 3. 清理生成的文章并去除段落标题
