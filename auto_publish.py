@@ -85,24 +85,26 @@ def generate_article_and_keywords(news: str) -> dict:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        
-        # Debug print the full API response to understand its structure
-        print(f"🔍 API response data: {json.dumps(data, ensure_ascii=False, indent=2)}")  # Debug print
 
-        # Ensure you correctly access the 'output' field in the response
+        # 添加调试输出，查看完整的响应结构
+        print(f"🔍 API response data: {json.dumps(data, ensure_ascii=False, indent=2)}")
+
+        # 确保正确访问数据中的 output 字段
         output = data.get("output", {})
-        article_text = output.get("text", "No valid content returned.")
         
-        # Extract title and keywords from the API response (check the format carefully)
+        # 检查返回的数据结构
         title = output.get("title", "Untitled")
-        keywords = output.get("keywords", "").split(", ")
+        keywords = output.get("keywords", "").split(", ")  # 按逗号分割关键字
 
         print(f"Generated Title: {title}")  # Debug print
         print(f"Keywords for image search: {keywords}")  # Debug print
-        return title, article_text, keywords
+        
+        return title, output.get("text", "No valid content returned."), keywords
+
     except Exception as e:
         print(f"❌ Tongyi API failed: {e}")
         return "Error: Missing or invalid news content.", "", []
+
 
 # 3. 清理生成的文章并去除段落标题
 def clean_article(article: str):
