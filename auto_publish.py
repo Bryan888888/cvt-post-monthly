@@ -15,30 +15,43 @@ WP_APP_PASS      = os.environ["WORDPRESS_APPLICATION_PASSWORD"]
 DEFAULT_IMAGE_URL = "https://example.com/default-image.jpg"  # 替换为你想要的默认图片 URL
 DEFAULT_MEDIA_ID = 12345  # 替换为你网站的默认媒体 ID
 
-# 1. 使用 Currents API 抓取最新行业新闻
+# 1. 使用 News API 抓取最新行业新闻
+import time
+
 def fetch_top_news():
+    keywords = ["sewing", "stitching", "fashion", "aramid"]
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/90.0.4430.93 Safari/537.36"
+        "User-Agent": "Mozilla/5.0"
     }
 
-    try:
-        resp = requests.get(
-            "https://api.currentsapi.services/v1/search",
-            params={
-                "apiKey": os.environ["CURR_API_KEY"],
-                "query": "textiles OR apparel OR garment",
-                "language": "en",
-                "page_size": 3,
-                "sort_by": "published"
-            },
-            headers=headers
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return [f"{n['title']}: {n.get('description', '')}" for n in data.get("news", [])]
-    except Exception as e:
-        print(f"❌ 获取新闻失败：{e}")
-        return []
+    for keyword in keywords:
+        print(f"🔍 正在尝试关键词：{keyword}")
+        try:
+            resp = requests.get(
+                "https://newsapi.org/v2/everything",
+                params={
+                    "apiKey": os.environ["NEWS_API_KEY"],
+                    "q": keyword,
+                    "language": "en",
+                    "pageSize": 3,
+                    "sortBy": "publishedAt"
+                },
+                headers=headers
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            articles = data.get("articles", [])
+            if articles:
+                return [f"{a['title']}: {a.get('description', '')}" for a in articles]
+            else:
+                print(f"⚠️ 关键词“{keyword}”未获取到有效新闻。")
+        except Exception as e:
+            print(f"❌ 获取关键词“{keyword}”的新闻失败：{e}")
+        time.sleep(1)  # 加入1秒延迟，避免触发API限流
+
+    print("⚠️ 所有关键词均获取失败，返回空列表。")
+    return []
+
 
 # 2. 用通义平台生成文章（使用 requests）
 def generate_article(news: str) -> str:
