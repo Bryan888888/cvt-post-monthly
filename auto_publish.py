@@ -1,6 +1,7 @@
 import os, requests, time, json, random, re
 from datetime import datetime
 from urllib.parse import urljoin
+from collections import Counter
 
 # 载入 Secrets
 NEWS_API_KEY     = os.environ["NEWS_API_KEY"]
