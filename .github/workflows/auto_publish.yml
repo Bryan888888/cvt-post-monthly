@@ -24,6 +24,7 @@ jobs:
       - name: Run auto-publish
         env:
           NEWS_API_KEY:        ${{ secrets.NEWS_API_KEY }}
+          NEWS_API_KEY_2:      ${{ secrets.NEWS_API_KEY_2 }}
           CURR_API_KEY:        ${{ secrets.CURR_API_KEY }}
           ALI_ACCESS_KEY:      ${{ secrets.ALI_ACCESS_KEY }}
           PIXABAY_API_KEY:     ${{ secrets.PIXABAY_API_KEY }}
