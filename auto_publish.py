@@ -24,35 +24,32 @@ def fetch_top_news():
     return [f"{a['title']}: {a['description']}" for a in data.get("articles", [])]
 
 # 2. 用通义平台生成文章（使用 requests）
-def generate_article(news):
+def generate_article(news: str) -> str:
+    url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ.get('ALI_ACCESS_KEY')}"
+    }
+    prompt = f"""请基于以下英文新闻内容，撰写一篇中文行业资讯摘要文章：\n\n{news}\n\n要求：\n1. 中文撰写，简洁有条理；\n2. 包括主要新闻点，不要逐条翻译；\n3. 添加适当的过渡和总结。\n\n谢谢！"""
+
+    payload = {
+        "model": "qwen-turbo",
+        "input": {
+            "prompt": prompt
+        },
+        "parameters": {
+            "result_format": "text"
+        }
+    }
+
     try:
-        response = requests.post(
-            "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
-            headers={
-                "Authorization": f"Bearer {ALI_ACCESS_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "qwen-turbo",
-                "input": {
-                    "prompt": f"你是一位资深中文科技新闻撰稿人。请根据以下新闻内容撰写一篇简洁的中文文章：\n\n{news}"
-                },
-                "parameters": {
-                    "temperature": 0.7
-                }
-            }
-        )
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
-        result = response.json()
-        text = result.get("output", {}).get("text")
-        if text:
-            return text
-        else:
-            print(f"⚠️ 未找到生成的文本内容，响应内容：{json.dumps(result, ensure_ascii=False)}")
-            return "【占位内容】生成过程中发生错误，暂无法生成文章。"
+        data = response.json()
+        return data.get("output", {}).get("text", "通义未返回有效内容。")
     except Exception as e:
         print(f"❌ 通义 API 调用失败：{e}")
-        return "【占位内容】生成过程中发生错误，暂无法生成文章。"
+        return "很抱歉，您提供的内容中缺少具体的新闻信息。请您补充完整的新闻素材，以便我为您撰写一篇简洁的中文文章。谢谢！"
 
 # 3. 提取关键词
 def extract_keywords(news_list, max_keywords=3):
@@ -142,12 +139,22 @@ def main():
 
     if not news_list:
         print("⚠️ 未获取到任何新闻内容，将使用默认内容。")
-        news_list = ["暂无今日新闻。"]
+        news_list = ["今天暂无重要新闻。"]
 
-    article = generate_article("\n".join(news_list))
-    img_url, credit = fetch_image(news_list)
+    news_text = "\n".join(news_list)
+    print("📨 提交给通义的内容：", news_text)
+
+    # 调用通义生成文章
+    article = generate_article(news_text)
+
+    # 获取配图及署名
+    image_url, credit = fetch_image(news_list)
+
+    # 构造文章标题
     title = f"每日行业洞察 - {datetime.now().strftime('%Y-%m-%d')}"
-    publish_to_wp(title, article, img_url, credit)
+
+    # 发布至 WordPress
+    publish_to_wp(title, article, image_url, credit)
 
 
 if __name__ == "__main__":
