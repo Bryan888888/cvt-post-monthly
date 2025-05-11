@@ -140,8 +140,6 @@ def publish_to_wp(title, content, image_url, image_credit):
     except Exception as e:
         print(f"⚠️ Image upload failed, using default image: {e}")
 
-    image_tag = f'<img src="{uploaded_image_url}" alt="Cover"/><p><em>Image by {image_credit} on Pixabay</em></p>'
-
     post = {
         "title": title,
         "content": f"{image_tag}<div>{content}</div>",
