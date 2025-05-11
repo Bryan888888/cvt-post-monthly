@@ -137,11 +137,18 @@ def publish_to_wp(title, content, image_url, image_credit):
 
 # 主流程
 def main():
-    news = fetch_top_news()
-    article = generate_article(news)
-    img_url, credit = fetch_image(news)
+    news_list = fetch_top_news()
+    print("📰 获取新闻内容：", news_list)
+
+    if not news_list:
+        print("⚠️ 未获取到任何新闻内容，将使用默认内容。")
+        news_list = ["暂无今日新闻。"]
+
+    article = generate_article("\n".join(news_list))
+    img_url, credit = fetch_image(news_list)
     title = f"每日行业洞察 - {datetime.now().strftime('%Y-%m-%d')}"
     publish_to_wp(title, article, img_url, credit)
+
 
 if __name__ == "__main__":
     main()
