@@ -61,7 +61,7 @@ def generate_article(news: str) -> str:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.environ.get('ALI_ACCESS_KEY')}"
     }
-    prompt = f"""请基于以下英文新闻内容，撰写一篇中文行业资讯摘要文章：\n\n{news}\n\n要求：\n1. 中文撰写，简洁有条理；\n2. 包括主要新闻点，不要逐条翻译；\n3. 添加适当的过渡和总结。\n\n谢谢！"""
+    prompt = f"""请基于以下英文新闻内容，撰写一篇行业资讯摘要文章：\n\n{news}\n\n要求：\n1. 英文撰写，简洁有条理；\n2. 包括主要新闻点，不要照抄；\n3. 添加适当的过渡和总结。\n\n谢谢！"""
 
     payload = {
         "model": "qwen-turbo",
