@@ -58,11 +58,7 @@ def generate_article_and_keywords(news: str) -> dict:
         "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
     prompt = f"""
-    Based on the following news snippets, write a concise and well-structured article. The article should include the following:
-    1. A clear and engaging title.
-    2. A summary of the key news points.
-    3. A brief introduction and conclusion.
-    4. Smooth semantics and no subtitles.
+    Based on the following news snippets, please create a brand-new news article based on the provided materials. The article should integrate the individual stories into one coherent narrative with smooth transitions and meaningful connections between them. It should have an engaging introduction, a well-developed body, and a thoughtful conclusion. Please use fluent, journalistic language appropriate for a news-style report.
 
     Also, provide a list of keywords related to the article after the end of the article, separated by commas. Return the title and keywords in the following format:
     <generated_title>
@@ -97,7 +93,7 @@ def generate_article_and_keywords(news: str) -> dict:
         text = output.get("text", "")
         
         # 提取标题（通常是第一行）
-        title = text.split("\n")[0].replace("Title: ", "").strip()
+        title = text.split("\n")[0].replace("", "").strip()
         
         # 提取关键词（通常在 'Keywords: ' 后）
         keywords_line = next((line for line in text.split("\n") if line.startswith("Keywords:")), "")
