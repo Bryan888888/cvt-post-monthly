@@ -96,8 +96,13 @@ def generate_article_and_keywords(news: str) -> dict:
         title = text.split("\n")[0].replace("", "").strip()
         
         # 提取关键词（通常在 'Keywords: ' 后）
-        keywords_line = next((line for line in text.split("\n") if line.startswith("Keywords:")), "")
-        keywords = keywords_line.replace("Keywords: ", "").strip().split(", ")
+        keywords_line = next((line for line in text.split("\n") if "keyword" in line.lower()), "")
+        keywords_match = re.search(r"(?i)keywords\s*:\s*(.+)", keywords_line)
+        if keywords_match:
+            keywords = [kw.strip() for kw in keywords_match.group(1).split(",") if kw.strip()]
+        else:
+            keywords = []
+
 
         print(f"Generated Title: {title}")  # Debug print
         print(f"Keywords for image search: {keywords}")  # Debug print
@@ -137,6 +142,8 @@ def fetch_image(keywords):
                 }
             )
             data = resp.json()
+            # 添加调试输出：查看 Pixabay 返回的完整内容
+            print(f"📷 Pixabay response for keyword '{keyword}': {json.dumps(data, indent=2)}")
             hits = data.get("hits", [])
             if hits:
                 image = random.choice(hits)
@@ -203,7 +210,10 @@ def main():
 
     news_text = "\n".join(news_list)
 
-    title, article, keywords = generate_article_and_keywords(news_text)
+    title, article, keywords = generate_article_and_keywords(news_text)    
+    # 检查关键词是否成功提取
+    if not keywords:
+        print("⚠️ No valid keywords extracted from article. Will use fallback image.")        
     image_url, credit = fetch_image(keywords)
 
     # Ensure the title is valid and formatted
