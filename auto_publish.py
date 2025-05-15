@@ -93,7 +93,11 @@ def generate_article_and_keywords(news: str) -> dict:
         text = output.get("text", "")
         
         # 提取标题（通常是第一行）
-        title = text.split("\n")[0].replace("", "").strip()
+        first_line = text.split("\n")[0].strip()
+        title = re.sub(r"^\**\s*Title\s*:\s*", "", first_line, flags=re.IGNORECASE).strip()
+
+        # 清理正文前的 "**Generated Article:**" 前缀
+        text = re.sub(r"^\**\s*Generated Article\s*:\s*", "", text, flags=re.IGNORECASE).strip()
         
         # 提取关键词（通常在 'Keywords: ' 后）
         keywords_line = next((line for line in text.split("\n") if "keyword" in line.lower()), "")
@@ -177,10 +181,14 @@ def publish_to_wp(title, content, image_url, image_credit):
         uploaded_image_url = media_json.get("source_url", image_url)
     except Exception as e:
         print(f"⚠️ Image upload failed, using default image: {e}")
+        
+    # 格式化标题为6号字体并加粗
+    styled_title = f"<p style='font-size:12px; font-weight:bold;'>{title}</p>"
+    styled_content = f"{styled_title}\n\n<div>{content}</div>"
 
     post = {
         "title": title,
-        "content": f"<div>{content}</div>",
+        "content": styled_content,  # 带格式的正文
         "status": "publish",
         "categories": [387],  # 你的 WordPress 分类 ID
         "excerpt": content[:100] + "…",
