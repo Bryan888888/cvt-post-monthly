@@ -61,7 +61,7 @@ def generate_article_and_keywords(news: str) -> dict:
     Based on the following news snippets, please create a brand-new news article based on the provided materials. The article should integrate the individual stories into one coherent narrative with smooth transitions and meaningful connections between them. It should have an engaging introduction, a well-developed body, and a thoughtful conclusion. Please use fluent, journalistic language appropriate for a news-style report.
 
     Also, provide a list of keywords related to the article after the end of the article, separated by commas. Return the title and keywords in the following format:
-    <generated_title>
+    Title: <generated_title>
     Keywords: <keyword1>, <keyword2>, <keyword3>, ...
     
     News snippets:
