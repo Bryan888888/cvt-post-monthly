@@ -186,7 +186,7 @@ def publish_to_wp(title, content, image_url, image_credit):
         print(f"⚠️ Image upload failed, using default image: {e}")
         
     # 格式化标题为6号字体并加粗
-    styled_title = f"<p style='font-size:12px; font-weight:bold;'>{title}</p>"
+    styled_title = f"<h2>{title}</h2>"
     styled_content = f"{styled_title}\n\n<div>{content}</div>"
 
     post = {
