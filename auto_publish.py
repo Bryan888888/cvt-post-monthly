@@ -62,9 +62,10 @@ def generate_article_and_keywords(news: str) -> dict:
     1. A clear and engaging title.
     2. A summary of the key news points.
     3. A brief introduction and conclusion.
+    4. Smooth semantics and no subtitles.
 
-    Also, provide a list of keywords related to the article, separated by commas. Return the title and keywords in the following format:
-    Title: <generated_title>
+    Also, provide a list of keywords related to the article after the end of the article, separated by commas. Return the title and keywords in the following format:
+    <generated_title>
     Keywords: <keyword1>, <keyword2>, <keyword3>, ...
     
     News snippets:
