@@ -58,7 +58,7 @@ def generate_article_and_keywords(news: str) -> dict:
         "Authorization": f"Bearer {ALI_ACCESS_KEY}"
     }
     prompt = f"""
-    Based on the following news snippets, please create a brand-new news article based on the provided materials. The article should integrate the individual stories into one coherent narrative with smooth transitions and meaningful connections between them. It should have an engaging introduction, a well-developed body, and a thoughtful conclusion. Please use fluent, journalistic language appropriate for a news-style report.
+    Based on the following news snippets, please create a brand-new news article based on the provided materials. The article should integrate the individual stories into one coherent narrative with smooth transitions and meaningful connections between them. It should have an engaging introduction, a well-developed body, and a thoughtful conclusion. Please use fluent, journalistic language appropriate for a news-style report.Do **not** include section labels such as "Title", "Introduction", "Body", or "Conclusion" in your output.
 
     Also, provide a list of keywords related to the article after the end of the article, separated by commas. Return the title and keywords in the following format:
     Title: <generated_title>
