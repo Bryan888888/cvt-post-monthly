@@ -96,8 +96,11 @@ def generate_article_and_keywords(news: str) -> dict:
         first_line = text.split("\n")[0].strip()
         title = re.sub(r"^\**\s*Title\s*:\s*", "", first_line, flags=re.IGNORECASE).strip()
 
-        # 清理正文前的 "**Generated Article:**" 前缀
-        text = re.sub(r"^\**\s*Generated Article\s*:\s*", "", text, flags=re.IGNORECASE).strip()
+        # 清洗正文中的标题行（“Title: xxx” 或直接首行标题）
+        lines = text.split("\n")
+        if lines and re.search(r"(?i)^(\**\s*title\s*:|^" + re.escape(title) + r")", lines[0]):
+            lines = lines[1:]  # 删除首行
+        text = "\n".join(lines).strip()
         
         # 提取关键词（通常在 'Keywords: ' 后）
         keywords_line = next((line for line in text.split("\n") if "keyword" in line.lower()), "")
