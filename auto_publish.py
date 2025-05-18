@@ -198,17 +198,35 @@ def publish_to_wp(title, content, image_url, image_credit):
         "featured_media": media_id
     }
     
+    # 先创建为草稿
+    post["status"] = "draft"
     try:
-        r = requests.post(
+        r1 = requests.post(
             urljoin(WP_BASE_URL, "/wp-json/wp/v2/posts"),
             auth=(WP_USER, WP_APP_PASS),
             headers={"Content-Type": "application/json"},
             json=post
         )
-        r.raise_for_status()
-        print("✅ Article published:", json.dumps(r.json(), ensure_ascii=False, indent=2))
+        r1.raise_for_status()
+        post_id = r1.json().get("id")
+        print(f"✅ Draft created: Post ID {post_id}")
     except Exception as e:
-        print(f"❌ Failed to publish article: {e}")
+        print(f"❌ Failed to create draft: {e}")
+        return
+    
+    # 然后切换为发布状态（此操作将触发 BNFW 邮件通知）
+    try:
+        r2 = requests.post(
+            urljoin(WP_BASE_URL, f"/wp-json/wp/v2/posts/{post_id}"),
+            auth=(WP_USER, WP_APP_PASS),
+            headers={"Content-Type": "application/json"},
+            json={"status": "publish"}
+        )
+        r2.raise_for_status()
+        print("✅ Article published:", json.dumps(r2.json(), ensure_ascii=False, indent=2))
+    except Exception as e:
+        print(f"❌ Failed to publish draft: {e}")
+
 
 # 主执行函数
 def main():
