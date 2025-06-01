@@ -2,7 +2,7 @@ name: Auto Publish to WordPress
 
 on:
   schedule:
-    - cron: '0 2 15 * *'    # 每月15日 UTC 2点（北京时间10点）运行
+    - cron: '0 2 2,16 * *'    # 每月1日和15日 UTC 2点（北京时间10点）运行，相当于每2周
   workflow_dispatch:      # 允许手动触发
 
 jobs:
